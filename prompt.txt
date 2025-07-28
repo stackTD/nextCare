@@ -1,0 +1,31 @@
+Hey copilot let discuss a software project named nextCare.
+Next care is a python software that will connect with PLC, poll data from PLC for different parameters, display the data value & graphically and have predictive maintaince details.
+
+details of project:
+
+- Role based login screen. Roles be like: admin, manager, engineer
+- configuration screen [with option to skip and move to dashboard]: here user can add/delete machine, can edit the parameters inside machine.
+- dashboard: All the parameters of the machine are displayed here, settings option is displayed here.
+
+I have LFD ready. I donot have PLC right now so i want to skip that and use a separate python program that will act as sensor which will allow the nextCare to connect and read the data. A sensor in reality can have data related to: 
+1. Temperature
+2. Vibration
+3. Shock
+4. Oil Supply
+5. Sound
+
+So my python based mock sensor will also emit this data at different registers like D20: Temprature, D21: vibration related data and so on.
+
+In my application's  configuration screen, i will add the address of register in parameter settings. So it can poll data.
+
+Application will connect with simulator as soon as it is turned on.
+
+
+I have postgres database in my machine. I donot know how database will look like, what will be the tables and what how to set that - you need to help me.
+
+Roles details:
+engineer when logged in can see the dashboard only that to of specific machines.
+manager: can view machine configuration screen but cannot edit it, can view dashboard, can open settings and create engineer credential and assign machines to that engineer
+admin: Can edit machin, can edit the parameters, can view dashboard and  in settings can add the PLC connection details and edit manager and engineer profiles
+
+What you say 
