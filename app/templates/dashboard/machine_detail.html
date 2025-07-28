@@ -119,8 +119,9 @@
                         <i class="bi bi-check-circle"></i>
                     </div>
                     <div class="parameter-value" id="param-{{ parameter.parameter_id }}-value">
-                        {% if parameter.latest_data %}
-                        {{ "%.2f"|format(parameter.latest_data.value) }}
+                        {% set latest_data = parameter.sensor_data | list | last if parameter.sensor_data else none %}
+                        {% if latest_data %}
+                        {{ "%.2f"|format(latest_data.value) }}
                         {% else %}
                         --
                         {% endif %}
@@ -143,8 +144,9 @@
                 </div>
                 <div class="card-footer text-center">
                     <small class="text-muted" id="param-{{ parameter.parameter_id }}-timestamp">
-                        {% if parameter.latest_data %}
-                        {{ parameter.latest_data.timestamp }}
+                        {% set latest_data = parameter.sensor_data | list | last if parameter.sensor_data else none %}
+                        {% if latest_data %}
+                        {{ latest_data.timestamp.strftime('%H:%M:%S') }}
                         {% else %}
                         No data
                         {% endif %}

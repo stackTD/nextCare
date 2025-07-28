@@ -5,12 +5,12 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'postgresql://postgres:password@localhost:5432/nextcare'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///nextcare.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Mock PLC Configuration
     PLC_HOST = os.environ.get('PLC_HOST') or '127.0.0.1'
-    PLC_PORT = int(os.environ.get('PLC_PORT') or 502)
+    PLC_PORT = int(os.environ.get('PLC_PORT') or 5020)
     
     # Data Collection Configuration
     DATA_COLLECTION_INTERVAL = int(os.environ.get('DATA_COLLECTION_INTERVAL') or 5)  # seconds

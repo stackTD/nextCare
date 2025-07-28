@@ -1,12 +1,13 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_socketio import SocketIO
 from config import config
 import os
 
-# Initialize extensions
-db = SQLAlchemy()
+# Import models to get db
+from app.models import db
+
+# Initialize other extensions
 login_manager = LoginManager()
 socketio = SocketIO()
 
@@ -21,7 +22,7 @@ def create_app(config_name=None):
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
-    socketio.init_app(app, cors_allowed_origins="*", async_mode='eventlet')
+    socketio.init_app(app, cors_allowed_origins="*", async_mode='threading')
     
     # Configure Flask-Login
     login_manager.login_view = 'auth.login'
@@ -46,9 +47,5 @@ def create_app(config_name=None):
     # Main routes
     from app import routes
     app.register_blueprint(routes.bp)
-    
-    # Initialize database tables
-    with app.app_context():
-        db.create_all()
     
     return app

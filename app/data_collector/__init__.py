@@ -9,7 +9,7 @@ import time
 import logging
 import threading
 from datetime import datetime
-from pymodbus.client.sync import ModbusTcpClient
+from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException, ConnectionException
 from sqlalchemy.exc import SQLAlchemyError
 from app.models import Parameter, SensorData, Alert, db
@@ -57,7 +57,7 @@ class DataCollector:
     
     def read_register(self, register_address):
         """Read a single register from PLC"""
-        if not self.client or not self.client.is_socket_open():
+        if not self.client or not self.client.connected:
             if not self.connect():
                 return None
         
@@ -242,7 +242,7 @@ class DataCollector:
     
     def is_connected(self):
         """Check if connected to PLC"""
-        return self.client and self.client.is_socket_open()
+        return self.client and self.client.connected
     
     def get_status(self):
         """Get collector status information"""

@@ -17,10 +17,9 @@ import math
 import logging
 import threading
 from datetime import datetime
-from pymodbus.server.sync import StartTcpServer
+from pymodbus.server import StartTcpServer
 from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.datastore import ModbusSequentialDataBlock, ModbusSlaveContext, ModbusServerContext
-from pymodbus.transaction import ModbusRtuFramer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -159,8 +158,7 @@ class MockPLCServer:
             StartTcpServer(
                 context=self.context,
                 identity=self.identity,
-                address=(self.host, self.port),
-                framer=ModbusRtuFramer
+                address=(self.host, self.port)
             )
         except KeyboardInterrupt:
             logger.info("Shutting down Mock PLC Server...")

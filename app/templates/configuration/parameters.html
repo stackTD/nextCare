@@ -68,8 +68,9 @@
                                 </span>
                             </td>
                             <td>
-                                {% if parameter.latest_value is not none %}
-                                    <span class="badge bg-primary">{{ "%.2f"|format(parameter.latest_value) }} {{ parameter.unit }}</span>
+                                {% set latest_data = parameter.sensor_data | list | last if parameter.sensor_data else none %}
+                                {% if latest_data %}
+                                    <span class="badge bg-primary">{{ "%.2f"|format(latest_data.value) }} {{ parameter.unit }}</span>
                                 {% else %}
                                     <span class="text-muted">No data</span>
                                 {% endif %}
