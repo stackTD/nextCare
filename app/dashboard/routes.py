@@ -1,9 +1,45 @@
 from flask import render_template, request, jsonify
 from flask_login import login_required, current_user
+from flask_socketio import emit
 from sqlalchemy import and_
 from datetime import datetime, timedelta
 from app.dashboard import bp
 from app.models import Machine, Parameter, SensorData, Alert, db
+from app import socketio
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection"""
+    print(f'Client connected: {request.sid}')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection"""
+    print(f'Client disconnected: {request.sid}')
+
+@socketio.on('heartbeat')
+def handle_heartbeat():
+    """Handle client heartbeat"""
+    emit('pong')
+
+def broadcast_sensor_update(parameter_id, value, timestamp):
+    """Broadcast sensor data update to all connected clients"""
+    socketio.emit('sensor_data_update', {
+        'parameter_id': parameter_id,
+        'value': value,
+        'timestamp': timestamp.isoformat()
+    })
+
+def broadcast_alert(alert):
+    """Broadcast new alert to all connected clients"""
+    socketio.emit('alert_created', {
+        'alert_id': alert.alert_id,
+        'parameter_id': alert.parameter_id,
+        'parameter_name': alert.parameter.name,
+        'message': alert.message,
+        'severity': alert.severity,
+        'created_at': alert.created_at.isoformat()
+    })
 
 @bp.route('/')
 @login_required

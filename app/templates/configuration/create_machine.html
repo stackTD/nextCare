@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Add Machine - Configuration{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-plus-circle"></i> Add New Machine
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Machine Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" required
+                                   placeholder="Enter machine name">
+                            <div class="form-text">Unique identifier for this machine</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"
+                                    placeholder="Enter machine description"></textarea>
+                            <div class="form-text">Brief description of the machine's purpose</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location" name="location"
+                                   placeholder="Enter machine location">
+                            <div class="form-text">Physical location or department</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('config.index') }}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Create Machine
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Help Section -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Machine Configuration Guide</h6>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li>Enter a unique name for your machine</li>
+                        <li>Add a description to help identify the machine's purpose</li>
+                        <li>Specify the physical location or department</li>
+                        <li>After creating, you can add parameters to monitor sensor data</li>
+                    </ol>
+                    <div class="alert alert-info mt-3">
+                        <strong>Next Step:</strong> After creating the machine, you'll be able to add parameters 
+                        for different sensors (Temperature, Vibration, etc.)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

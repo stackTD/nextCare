@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}{{ machine.name }} Parameters - Configuration{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('config.index') }}">Configuration</a></li>
+                    <li class="breadcrumb-item active">{{ machine.name }}</li>
+                </ol>
+            </nav>
+            <h2><i class="bi bi-list-ul"></i> Parameters for {{ machine.name }}</h2>
+            <p class="text-muted">{{ machine.description }}</p>
+        </div>
+        <div>
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('config.create_parameter', machine_id=machine.machine_id) }}" 
+               class="btn btn-primary">
+                <i class="bi bi-plus"></i> Add Parameter
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Parameters Table -->
+    {% if parameters %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-table"></i> Machine Parameters</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Parameter Name</th>
+                            <th>Register Address</th>
+                            <th>Unit</th>
+                            <th>Min Value</th>
+                            <th>Max Value</th>
+                            <th>Status</th>
+                            <th>Latest Value</th>
+                            {% if current_user.role == 'admin' %}
+                            <th>Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for parameter in parameters %}
+                        <tr>
+                            <td>
+                                <strong>{{ parameter.name }}</strong>
+                                <br>
+                                <small class="text-muted">ID: {{ parameter.parameter_id }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ parameter.register_address }}</span>
+                            </td>
+                            <td>{{ parameter.unit }}</td>
+                            <td>{{ parameter.min_value or '-' }}</td>
+                            <td>{{ parameter.max_value or '-' }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if parameter.is_active else 'secondary' }}">
+                                    {{ 'Active' if parameter.is_active else 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if parameter.latest_value is not none %}
+                                    <span class="badge bg-primary">{{ "%.2f"|format(parameter.latest_value) }} {{ parameter.unit }}</span>
+                                {% else %}
+                                    <span class="text-muted">No data</span>
+                                {% endif %}
+                            </td>
+                            {% if current_user.role == 'admin' %}
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('config.edit_parameter', parameter_id=parameter.parameter_id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            onclick="confirmDelete({{ parameter.parameter_id }}, '{{ parameter.name }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-list-ul" style="font-size: 4rem; color: #ccc;"></i>
+        <h4 class="mt-3 text-muted">No parameters configured</h4>
+        <p class="text-muted">Add parameters to start monitoring sensor data</p>
+        {% if current_user.role == 'admin' %}
+        <a href="{{ url_for('config.create_parameter', machine_id=machine.machine_id) }}" 
+           class="btn btn-primary">
+            <i class="bi bi-plus"></i> Add First Parameter
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the parameter "<span id="deleteParameterName"></span>"?</p>
+                <p class="text-danger"><strong>Warning:</strong> This will also delete all associated sensor data and alerts.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" style="display: inline;" id="deleteForm">
+                    <button type="submit" class="btn btn-danger">Delete Parameter</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(parameterId, parameterName) {
+    document.getElementById('deleteParameterName').textContent = parameterName;
+    document.getElementById('deleteForm').action = '{{ url_for("config.delete_parameter", parameter_id=0) }}'.replace('0', parameterId);
+    
+    var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
+</script>
+{% endblock %}

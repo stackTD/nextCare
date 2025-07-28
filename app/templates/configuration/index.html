@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - NextCare{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-gear"></i> Configuration</h2>
+            <p class="text-muted">Manage machines and parameters</p>
+        </div>
+        <div>
+            <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-right"></i> Skip to Dashboard
+            </a>
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('config.create_machine') }}" class="btn btn-primary">
+                <i class="bi bi-plus"></i> Add Machine
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Machine Cards -->
+    <div class="row">
+        {% for machine in machines %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 machine-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-cpu"></i> {{ machine.name }}
+                    </h5>
+                    <span class="badge bg-{{ 'success' if machine.is_active else 'secondary' }}">
+                        {{ 'Active' if machine.is_active else 'Inactive' }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">{{ machine.description or 'No description available' }}</p>
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            <i class="bi bi-geo-alt"></i> {{ machine.location or 'No location set' }}
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="bi bi-list-ul"></i> {{ machine.parameters|length }} parameters
+                        </small>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group w-100" role="group">
+                        <a href="{{ url_for('config.view_machine', machine_id=machine.machine_id) }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                        {% if current_user.role == 'admin' %}
+                        <a href="{{ url_for('config.edit_machine', machine_id=machine.machine_id) }}" 
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <a href="{{ url_for('config.list_parameters', machine_id=machine.machine_id) }}" 
+                           class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-list"></i> Parameters
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        {% if not machines %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="bi bi-cpu" style="font-size: 4rem; color: #ccc;"></i>
+                <h4 class="mt-3 text-muted">No machines configured</h4>
+                <p class="text-muted">Get started by adding your first machine</p>
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('config.create_machine') }}" class="btn btn-primary">
+                    <i class="bi bi-plus"></i> Add Machine
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.machine-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.machine-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+}
+
+.btn-group .btn {
+    flex: 1;
+}
+</style>
+{% endblock %}
