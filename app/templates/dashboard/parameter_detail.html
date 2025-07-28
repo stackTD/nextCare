@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}{{ parameter.name }} - Parameter Detail{% endblock %}
+
+{% block extra_head %}
+<style>
+    .parameter-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+    }
+    
+    .current-value {
+        font-size: 4rem;
+        font-weight: bold;
+        margin: 0;
+    }
+    
+    .value-unit {
+        font-size: 1.5rem;
+        opacity: 0.8;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin: 2rem 0;
+    }
+    
+    .time-selector {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+    }
+    
+    .alert-item {
+        border-left: 4px solid;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 0 5px 5px 0;
+    }
+    
+    .alert-critical { border-left-color: #dc3545; background-color: #f8d7da; }
+    .alert-high { border-left-color: #fd7e14; background-color: #fff3cd; }
+    .alert-medium { border-left-color: #ffc107; background-color: #fff3cd; }
+    .alert-low { border-left-color: #17a2b8; background-color: #d1ecf1; }
+    
+    .stats-card {
+        text-align: center;
+        padding: 1.5rem;
+        border-radius: 10px;
+        background: #f8f9fa;
+    }
+    
+    .stats-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #495057;
+    }
+    
+    .stats-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="parameter-header">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb mb-0" style="background: none;">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('dashboard.index') }}" style="color: rgba(255,255,255,0.8);">Dashboard</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('dashboard.machine_detail', machine_id=machine.machine_id) }}" 
+                       style="color: rgba(255,255,255,0.8);">{{ machine.name }}</a>
+                </li>
+                <li class="breadcrumb-item active" style="color: white;">{{ parameter.name }}</li>
+            </ol>
+        </nav>
+        
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1><i class="bi bi-graph-up"></i> {{ parameter.name }}</h1>
+                <p class="mb-2">{{ machine.name }} - {{ parameter.register_address }}</p>
+                <p class="mb-0">Real-time monitoring and historical analysis</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="current-value" id="currentValue">
+                    {% if historical_data %}
+                    {{ "%.2f"|format(historical_data[-1].value) }}
+                    {% else %}
+                    --
+                    {% endif %}
+                </div>
+                <div class="value-unit">{{ parameter.unit }}</div>
+                <small>Last updated: <span id="lastUpdate">
+                    {% if historical_data %}
+                    {{ historical_data[-1].timestamp.strftime('%H:%M:%S') }}
+                    {% else %}
+                    Never
+                    {% endif %}
+                </span></small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Time Range Selector -->
+    <div class="time-selector">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h6 class="mb-0"><i class="bi bi-clock"></i> Time Range</h6>
+            </div>
+            <div class="col-md-6">
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="timeRange" id="range1h" value="1" 
+                           {{ 'checked' if hours == 1 else '' }} onchange="changeTimeRange(1)">
+                    <label class="btn btn-outline-primary btn-sm" for="range1h">1 Hour</label>
+                    
+                    <input type="radio" class="btn-check" name="timeRange" id="range6h" value="6" 
+                           {{ 'checked' if hours == 6 else '' }} onchange="changeTimeRange(6)">
+                    <label class="btn btn-outline-primary btn-sm" for="range6h">6 Hours</label>
+                    
+                    <input type="radio" class="btn-check" name="timeRange" id="range24h" value="24" 
+                           {{ 'checked' if hours == 24 else '' }} onchange="changeTimeRange(24)">
+                    <label class="btn btn-outline-primary btn-sm" for="range24h">24 Hours</label>
+                    
+                    <input type="radio" class="btn-check" name="timeRange" id="range7d" value="168" 
+                           {{ 'checked' if hours == 168 else '' }} onchange="changeTimeRange(168)">
+                    <label class="btn btn-outline-primary btn-sm" for="range7d">7 Days</label>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm ms-2" onclick="refreshData()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Chart Column -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up"></i> Historical Data</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="historicalChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistics -->
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-value" id="avgValue">--</div>
+                        <div class="stats-label">Average</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-value" id="minValue">--</div>
+                        <div class="stats-label">Minimum</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-value" id="maxValue">--</div>
+                        <div class="stats-label">Maximum</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-value" id="dataPoints">{{ historical_data|length }}</div>
+                        <div class="stats-label">Data Points</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Alerts Column -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bell"></i> Parameter Alerts</h5>
+                </div>
+                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                    {% if alerts %}
+                    {% for alert in alerts %}
+                    <div class="alert-item alert-{{ alert.severity }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ alert.severity.title() }} Alert</strong>
+                                <br>
+                                <small>{{ alert.message }}</small>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="bi bi-clock"></i> {{ alert.created_at.strftime('%m/%d %H:%M') }}
+                                </small>
+                                {% if alert.is_acknowledged %}
+                                <br>
+                                <small class="text-success">
+                                    <i class="bi bi-check"></i> Acknowledged
+                                </small>
+                                {% endif %}
+                            </div>
+                            {% if not alert.is_acknowledged %}
+                            <button class="btn btn-sm btn-outline-secondary" 
+                                    onclick="acknowledgeAlert({{ alert.alert_id }})">
+                                <i class="bi bi-check"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-check-circle" style="font-size: 2rem; color: #28a745;"></i>
+                        <p class="mt-2 text-muted">No alerts for this parameter</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Parameter Info -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Parameter Info</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Register:</strong></td>
+                            <td>{{ parameter.register_address }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Unit:</strong></td>
+                            <td>{{ parameter.unit }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Min Threshold:</strong></td>
+                            <td>{{ parameter.min_value or 'Not set' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Max Threshold:</strong></td>
+                            <td>{{ parameter.max_value or 'Not set' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Status:</strong></td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if parameter.is_active else 'secondary' }}">
+                                    {{ 'Active' if parameter.is_active else 'Inactive' }}
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let historicalChart;
+let refreshInterval;
+
+function initializeChart() {
+    const ctx = document.getElementById('historicalChart').getContext('2d');
+    
+    // Prepare data from server
+    const data = [
+        {% for data_point in historical_data %}
+        {
+            x: '{{ data_point.timestamp.isoformat() }}',
+            y: {{ data_point.value }}
+        },
+        {% endfor %}
+    ];
+    
+    historicalChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: '{{ parameter.name }} ({{ parameter.unit }})',
+                data: data,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1
+            }{% if parameter.min_value %},
+            {
+                label: 'Min Threshold',
+                data: data.map(point => ({ x: point.x, y: {{ parameter.min_value }} })),
+                borderColor: '#dc3545',
+                borderDash: [5, 5],
+                borderWidth: 1,
+                fill: false,
+                pointRadius: 0
+            }{% endif %}{% if parameter.max_value %},
+            {
+                label: 'Max Threshold',
+                data: data.map(point => ({ x: point.x, y: {{ parameter.max_value }} })),
+                borderColor: '#dc3545',
+                borderDash: [5, 5],
+                borderWidth: 1,
+                fill: false,
+                pointRadius: 0
+            }{% endif %}]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: '{{ parameter.name }} - Last {{ hours }} Hours'
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        displayFormats: {
+                            hour: 'HH:mm',
+                            day: 'MM/DD HH:mm'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: '{{ parameter.name }} ({{ parameter.unit }})'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Calculate and display statistics
+    if (data.length > 0) {
+        const values = data.map(point => point.y);
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        
+        document.getElementById('avgValue').textContent = avg.toFixed(2);
+        document.getElementById('minValue').textContent = min.toFixed(2);
+        document.getElementById('maxValue').textContent = max.toFixed(2);
+    }
+}
+
+function changeTimeRange(hours) {
+    window.location.href = `{{ url_for('dashboard.parameter_detail', parameter_id=parameter.parameter_id) }}?hours=${hours}`;
+}
+
+function refreshData() {
+    fetch(`/dashboard/api/parameter/{{ parameter.parameter_id }}/history?hours={{ hours }}`)
+        .then(response => response.json())
+        .then(data => {
+            // Update current value
+            if (data.data_points.length > 0) {
+                const latest = data.data_points[data.data_points.length - 1];
+                document.getElementById('currentValue').textContent = latest.value.toFixed(2);
+                document.getElementById('lastUpdate').textContent = new Date(latest.timestamp).toLocaleTimeString();
+            }
+            
+            // Update chart
+            const chartData = data.data_points.map(point => ({
+                x: point.timestamp,
+                y: point.value
+            }));
+            
+            historicalChart.data.datasets[0].data = chartData;
+            
+            // Update threshold lines if they exist
+            if (historicalChart.data.datasets.length > 1) {
+                for (let i = 1; i < historicalChart.data.datasets.length; i++) {
+                    historicalChart.data.datasets[i].data = chartData.map(point => ({
+                        x: point.x,
+                        y: historicalChart.data.datasets[i].data[0]?.y || 0
+                    }));
+                }
+            }
+            
+            historicalChart.update();
+            
+            // Update statistics
+            if (chartData.length > 0) {
+                const values = chartData.map(point => point.y);
+                const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                const min = Math.min(...values);
+                const max = Math.max(...values);
+                
+                document.getElementById('avgValue').textContent = avg.toFixed(2);
+                document.getElementById('minValue').textContent = min.toFixed(2);
+                document.getElementById('maxValue').textContent = max.toFixed(2);
+                document.getElementById('dataPoints').textContent = values.length;
+            }
+        })
+        .catch(error => console.error('Error refreshing data:', error));
+}
+
+function acknowledgeAlert(alertId) {
+    fetch(`/dashboard/api/alerts/${alertId}/acknowledge`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload(); // Refresh the page to update alerts
+        }
+    })
+    .catch(error => console.error('Error acknowledging alert:', error));
+}
+
+// Initialize everything when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializeChart();
+    refreshInterval = setInterval(refreshData, 30000); // Refresh every 30 seconds
+});
+
+// Clean up interval when leaving page
+window.addEventListener('beforeunload', function() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+});
+</script>
+{% endblock %}

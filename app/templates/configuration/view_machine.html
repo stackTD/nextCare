@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}{{ machine.name }} - Configuration{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('config.index') }}">Configuration</a></li>
+                    <li class="breadcrumb-item active">{{ machine.name }}</li>
+                </ol>
+            </nav>
+            <h2><i class="bi bi-cpu"></i> {{ machine.name }}</h2>
+            <p class="text-muted">{{ machine.description }}</p>
+        </div>
+        <div>
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('config.edit_machine', machine_id=machine.machine_id) }}" 
+               class="btn btn-secondary">
+                <i class="bi bi-pencil"></i> Edit Machine
+            </a>
+            <a href="{{ url_for('config.list_parameters', machine_id=machine.machine_id) }}" 
+               class="btn btn-primary">
+                <i class="bi bi-list-ul"></i> Manage Parameters
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Machine Information -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Machine Details</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>Name:</strong></td>
+                            <td>{{ machine.name }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Description:</strong></td>
+                            <td>{{ machine.description or 'No description' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Location:</strong></td>
+                            <td>{{ machine.location or 'Not specified' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Status:</strong></td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if machine.is_active else 'secondary' }}">
+                                    {{ 'Active' if machine.is_active else 'Inactive' }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Created:</strong></td>
+                            <td>{{ machine.created_at.strftime('%Y-%m-%d %H:%M:%S') if machine.created_at else 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Parameters:</strong></td>
+                            <td>{{ parameters|length }} configured</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-activity"></i> Quick Stats</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="h3 text-primary">{{ parameters|length }}</div>
+                            <small class="text-muted">Total Parameters</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h3 text-success">{{ parameters|selectattr('is_active')|list|length }}</div>
+                            <small class="text-muted">Active Parameters</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h3 text-info">
+                                {% set registers = parameters|map(attribute='register_address')|unique|list %}
+                                {{ registers|length }}
+                            </div>
+                            <small class="text-muted">Unique Registers</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Parameters Overview -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Parameters Overview</h5>
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('config.create_parameter', machine_id=machine.machine_id) }}" 
+               class="btn btn-sm btn-primary">
+                <i class="bi bi-plus"></i> Add Parameter
+            </a>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            {% if parameters %}
+            <div class="row">
+                {% for parameter in parameters %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="mb-0">{{ parameter.name }}</h6>
+                                <span class="badge bg-info">{{ parameter.register_address }}</span>
+                            </div>
+                            <p class="text-muted mb-2">{{ parameter.unit }}</p>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Min</small>
+                                    <strong>{{ parameter.min_value or '-' }}</strong>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Max</small>
+                                    <strong>{{ parameter.max_value or '-' }}</strong>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-{{ 'success' if parameter.is_active else 'secondary' }}">
+                                    {{ 'Active' if parameter.is_active else 'Inactive' }}
+                                </span>
+                            </div>
+                        </div>
+                        {% if current_user.role == 'admin' %}
+                        <div class="card-footer bg-transparent">
+                            <div class="btn-group w-100" role="group">
+                                <a href="{{ url_for('config.edit_parameter', parameter_id=parameter.parameter_id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        onclick="confirmDelete({{ parameter.parameter_id }}, '{{ parameter.name }}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-list-ul" style="font-size: 3rem; color: #ccc;"></i>
+                <h5 class="mt-3 text-muted">No parameters configured</h5>
+                <p class="text-muted">Add parameters to start monitoring this machine</p>
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('config.create_parameter', machine_id=machine.machine_id) }}" 
+                   class="btn btn-primary">
+                    <i class="bi bi-plus"></i> Add First Parameter
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the parameter "<span id="deleteParameterName"></span>"?</p>
+                <p class="text-danger"><strong>Warning:</strong> This will also delete all associated sensor data and alerts.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" style="display: inline;" id="deleteForm">
+                    <button type="submit" class="btn btn-danger">Delete Parameter</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(parameterId, parameterName) {
+    document.getElementById('deleteParameterName').textContent = parameterName;
+    document.getElementById('deleteForm').action = '{{ url_for("config.delete_parameter", parameter_id=0) }}'.replace('0', parameterId);
+    
+    var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
+</script>
+{% endblock %}
